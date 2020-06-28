@@ -1,0 +1,1 @@
+# Domoticz-Xiaomi-Fan-ZA4
