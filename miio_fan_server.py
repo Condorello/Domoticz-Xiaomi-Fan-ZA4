@@ -22,10 +22,10 @@ from logging.handlers import RotatingFileHandler
 import logging
 
 parser = argparse.ArgumentParser()
-parser.add_argument('ip', type=str, help='vacuum ip address', default='192.168.1.12"')
-parser.add_argument('token', type=str, help='token', default='476e6b70343055483230644c53707a12')
+parser.add_argument('ip', type=str, help='fan ip address', default='192.168.0.51"')
+parser.add_argument('token', type=str, help='token', default='486e6b70343055483230644c53707a12')
 parser.add_argument('--host', type=str, default='127.0.0.1')
-parser.add_argument('--port', type=int, default=22222)
+parser.add_argument('--port', type=int, default=22223)
 args = parser.parse_args()
 
 send = Queue()
@@ -91,22 +91,22 @@ def socket_msg_sender(sockets, q):
 
 
 def vacuum_commands_handler(ip, token, q):
-    vac = FanZA4(ip, token)
-    vac.manual_seqnum = 0
+    fan = FanZA4(ip, token)
+    fan.manual_seqnum = 0
 
     while True:
         msg = q.get()
         try:
             cmd = msg.pop(0)
             if hasattr(VacuumCommand, cmd):
-                result = getattr(VacuumCommand, cmd)(vac, *msg)
+                result = getattr(VacuumCommand, cmd)(fan, *msg)
             else:
                 result = {'exception': 'command [%s] not found' % cmd}
         except (DeviceException, Exception) as e:
             result = {'exception': 'python-miio: %s' % e}
         finally:
             result.update({'cmd': cmd})
-            logger.debug('vac result %s', result)
+            logger.debug('fan result %s', result)
             send.put(OutMsg(result, msg.to))
 
 
@@ -116,8 +116,8 @@ class VacuumCommand(object):
 
     @classmethod
 
-    def status(cls, vac):
-        res = vac.status()
+    def status(cls, fan):
+        res = fan.status()
         if not res:
             return {
                 'exception': 'no response'
@@ -134,44 +134,44 @@ class VacuumCommand(object):
         }
 
     @classmethod
-    def start(cls, vac):
-        return {'code': vac.on()}
+    def start(cls, fan):
+        return {'code': fan.on()}
 
     @classmethod
-    def stop(cls, vac):
-        return {'code': vac.off()}
+    def stop(cls, fan):
+        return {'code': fan.off()}
 
 #### toggle oscillate on/off
     @classmethod
-    def oscillate_off(cls, vac):
-        if vac.status().oscillate == True:
-           return {'code': vac.set_oscillate(False)}
-#        elif vac.status().oscillate == False:
-#           return {'code': vac.set_oscillate(True)}
+    def oscillate_off(cls, fan):
+        if fan.status().oscillate == True:
+           return {'code': fan.set_oscillate(False)}
+#        elif fan.status().oscillate == False:
+#           return {'code': fan.set_oscillate(True)}
 
     @classmethod
-    def oscillate_30(cls, vac):
+    def oscillate_30(cls, fan):
         return {'code': vac.set_angle(30)}
 
     @classmethod
-    def oscillate_60(cls, vac):
-        return {'code': vac.set_angle(60)}
+    def oscillate_60(cls, fan):
+        return {'code': fan.set_angle(60)}
 
     @classmethod
-    def oscillate_90(cls, vac):
-        return {'code': vac.set_angle(90)}
+    def oscillate_90(cls, fan):
+        return {'code': fan.set_angle(90)}
 
     @classmethod
-    def oscillate_120(cls, vac):
-        return {'code': vac.set_angle(120)}
+    def oscillate_120(cls, fan):
+        return {'code': fan.set_angle(120)}
 
     @classmethod
-    def set_fan_level_direct(cls, vac, level):
-        return {'code': vac.set_direct_speed(int(level))}
+    def set_fan_level_direct(cls, fan, level):
+        return {'code': fan.set_direct_speed(int(level))}
 
     @classmethod
-    def set_fan_level_natural(cls, vac, level):
-        return {'code': vac.set_natural_speed(int(level))}
+    def set_fan_level_natural(cls, fan, level):
+        return {'code': fan.set_natural_speed(int(level))}
 
 class InMsg(list):
     def __init__(self, data, to, **kwargs):
